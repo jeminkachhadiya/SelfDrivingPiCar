@@ -1,12 +1,13 @@
 import cv2
 import logging
 import datetime
+import picar
 import time
 import edgetpu.detection.engine
 from PIL import Image
 from traffic_objects import *
 
-_SHOW_IMAGE = False
+_SHOW_IMAGE = True
 
 
 class ObjectsOnRoadProcessor(object):
@@ -14,6 +15,9 @@ class ObjectsOnRoadProcessor(object):
     This class 1) detects what objects (namely traffic signs and people) are on the road
     and 2) controls the car navigation (speed/steering) accordingly
     """
+    __INITIAL_SPEED = 0
+    __SCREEN_WIDTH = 320
+    __SCREEN_HEIGHT = 240
 
     def __init__(self,
                  car=None,
@@ -31,7 +35,41 @@ class ObjectsOnRoadProcessor(object):
         # initialize car
         self.car = car
         self.speed_limit = speed_limit
-        self.speed = speed_limit
+        # self.speed = 0
+        """ Init camera and wheels"""
+        logging.info('Creating a DeepPiCar...')
+
+        picar.setup()
+
+        logging.debug('Set up camera')
+        self.camera = cv2.VideoCapture(-1)
+        self.camera.set(3, self.__SCREEN_WIDTH)
+        self.camera.set(4, self.__SCREEN_HEIGHT)
+
+        self.pan_servo = picar.Servo.Servo(1)
+        self.pan_servo.offset = -30  # calibrate servo to center
+        self.pan_servo.write(90)
+
+        self.tilt_servo = picar.Servo.Servo(2)
+        self.tilt_servo.offset = 20  # calibrate servo to center
+        self.tilt_servo.write(90)
+
+        logging.debug('Set up back wheels')
+        self.back_wheels = picar.back_wheels.Back_Wheels()
+        self.back_wheels.speed = 0  # Speed Range is 0 (stop) - 100 (fastest)
+
+        logging.debug('Set up front wheels')
+        self.front_wheels = picar.front_wheels.Front_Wheels()
+        self.front_wheels.turning_offset = 0  # calibrate servo to center (default = -25)
+        self.front_wheels.turn(90)  # Steering Range is 45 (left) - 90 (center) - 135 (right)
+
+        self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        datestr = datetime.datetime.now().strftime("%y%m%d_%H%M%S")
+        self.video_orig = self.create_video_recorder('../data/tmp/car_video%s.avi' % datestr)
+        self.video_lane = self.create_video_recorder('../data/tmp/car_video_lane%s.avi' % datestr)
+        self.video_objs = self.create_video_recorder('../data/tmp/car_video_objs%s.avi' % datestr)
+
+        logging.info('Created a DeepPiCar')
 
         # initialize TensorFlow models
         with open(label, 'r') as f:
@@ -64,6 +102,32 @@ class ObjectsOnRoadProcessor(object):
                                 3: SpeedLimit(25),
                                 4: SpeedLimit(40),
                                 5: StopSign()}
+                                
+    def create_video_recorder(self, path):
+        return cv2.VideoWriter(path, self.fourcc, 20.0, (self.__SCREEN_WIDTH, self.__SCREEN_HEIGHT))
+
+    def __enter__(self):
+        """ Entering a with statement """
+        return self
+
+    def __exit__(self, _type, value, traceback):
+        """ Exit a with statement"""
+        if traceback is not None:
+            # Exception occurred:
+            logging.error('Exiting with statement with exception %s' % traceback)
+
+        self.cleanup()
+
+    def cleanup(self):
+        """ Reset the hardware"""
+        logging.info('Stopping the car, resetting hardware.')
+        self.back_wheels.speed = 0
+        self.front_wheels.turn(90)
+        self.camera.release()
+        self.video_orig.release()
+        self.video_lane.release()
+        self.video_objs.release()
+        cv2.destroyAllWindows()
 
     def process_objects_on_road(self, frame):
         # Main entry point of the Road Object Handler
@@ -98,7 +162,7 @@ class ObjectsOnRoadProcessor(object):
         self.resume_driving(car_state)
 
     def resume_driving(self, car_state):
-        old_speed = self.speed
+        # old_speed = self.speed
         self.speed_limit = car_state['speed_limit']
         self.speed = car_state['speed']
 
@@ -106,7 +170,7 @@ class ObjectsOnRoadProcessor(object):
             self.set_speed(0)
         else:
             self.set_speed(self.speed_limit)
-        logging.debug('Current Speed = %d, New Speed = %d' % (old_speed, self.speed))
+        # logging.debug('Current Speed = %d, New Speed = %d' % (old_speed, self.speed))
 
         if self.speed == 0:
             logging.debug('full stop for 1 seconds')
@@ -115,6 +179,7 @@ class ObjectsOnRoadProcessor(object):
     def set_speed(self, speed):
         # Use this setter, so we can test this class without a car attached
         self.speed = speed
+        self.back_wheels.speed = speed
         if self.car is not None:
             logging.debug("Actually setting car speed to %d" % speed)
             self.car.back_wheels.speed = speed
@@ -156,8 +221,7 @@ class ObjectsOnRoadProcessor(object):
         #cv2.imshow('Detected Objects', frame)
 
         return objects, frame
-    
-
+        
     def drive(self, speed=__INITIAL_SPEED):
         """ Main entry point of the car, and put it in drive mode
 
@@ -176,13 +240,12 @@ class ObjectsOnRoadProcessor(object):
 
             image_objs = self.process_objects_on_road(image_objs)
             self.video_objs.write(image_objs)
+            self.create_video_recorder('../data/car_video_objs%s.avi' % datestr).write(image_objs)
             show_image('Detected Objects', image_objs)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 self.cleanup()
                 break
-
-
 
 ############################
 # Utility Functions
@@ -258,20 +321,21 @@ def test_video(video_file):
         cv2.destroyAllWindows()
 
 def main():
-    with DeepPiCar() as car:
+    with ObjectsOnRoadProcessor() as car:
         car.drive(40)
-
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)-5s:%(asctime)s: %(message)s')
 
     # These processors contains no state
-    # test_photo('/home/pi/DeepPiCar/driver/data/objects/red_light.jpg')
-    # test_photo('/home/pi/DeepPiCar/driver/data/objects/person.jpg')
-    # test_photo('/home/pi/DeepPiCar/driver/data/objects/limit_40.jpg')
-    # test_photo('/home/pi/DeepPiCar/driver/data/objects/limit_25.jpg')
-    # test_photo('/home/pi/DeepPiCar/driver/data/objects/green_light.jpg')
-    # test_photo('/home/pi/DeepPiCar/driver/data/objects/no_obj.jpg')
-    main()
+    #test_photo('/home/pi/DeepPiCar/driver/data/objects/red_light.jpg')
+    #test_photo('/home/pi/DeepPiCar/driver/data/objects/person.jpg')
+    #test_photo('/home/pi/DeepPiCar/driver/data/objects/limit_40.jpg')
+    #test_photo('/home/pi/DeepPiCar/driver/data/objects/limit_25.jpg')
+    #test_photo('/home/pi/DeepPiCar/driver/data/objects/green_light.jpg')
+    #test_photo('/home/pi/DeepPiCar/driver/data/objects/no_obj.jpg')
+    # main()
+    roadprocessor = ObjectsOnRoadProcessor()
+    roadprocessor.drive(40)
     # test stop sign, which carries state
-    # test_stop_sign()
+    #test_stop_sign()
