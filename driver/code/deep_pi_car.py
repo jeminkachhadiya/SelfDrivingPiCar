@@ -39,7 +39,7 @@ class DeepPiCar(object):
 
         logging.debug('Set up front wheels')
         self.front_wheels = picar.front_wheels.Front_Wheels()
-        self.front_wheels.turning_offset = -25  # calibrate servo to center
+        self.front_wheels.turning_offset = 25  # calibrate servo to center (default = -25)
         self.front_wheels.turn(90)  # Steering Range is 45 (left) - 90 (center) - 135 (right)
 
         self.lane_follower = HandCodedLaneFollower(self)
@@ -49,8 +49,8 @@ class DeepPiCar(object):
         self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
         datestr = datetime.datetime.now().strftime("%y%m%d_%H%M%S")
         self.video_orig = self.create_video_recorder('../data/tmp/car_video%s.avi' % datestr)
-        self.video_lane = self.create_video_recorder('../data/tmp/car_video_lane%s.avi' % datestr)
-        self.video_objs = self.create_video_recorder('../data/tmp/car_video_objs%s.avi' % datestr)
+        self.video_lane = self.create_video_recorder('car_video_lane%s.avi' % datestr)
+        self.video_objs = self.create_video_recorder('car_video_objs%s.avi' % datestr)
 
         logging.info('Created a DeepPiCar')
 
