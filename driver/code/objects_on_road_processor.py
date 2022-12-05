@@ -21,7 +21,7 @@ class ObjectsOnRoadProcessor(object):
 
     def __init__(self,
                  car=None,
-                 speed_limit=40,
+                 speed_limit=30,
                  model='/home/pi/DeepPiCar/models/object_detection/data/model_result/road_signs_quantized_edgetpu.tflite',
                  label='/home/pi/DeepPiCar/models/object_detection/data/model_result/road_sign_labels.txt',
                  width=640,
@@ -99,7 +99,7 @@ class ObjectsOnRoadProcessor(object):
         self.traffic_objects = {0: GreenTrafficLight(),
                                 1: Person(),
                                 2: RedTrafficLight(),
-                                3: SpeedLimit(25),
+                                3: SpeedLimit(20),
                                 4: SpeedLimit(40),
                                 5: StopSign()}
                                 
