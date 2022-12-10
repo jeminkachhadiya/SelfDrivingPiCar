@@ -22,8 +22,8 @@ class ObjectsOnRoadProcessor(object):
     def __init__(self,
                  car=None,
                  speed_limit=30,
-                 model='/home/pi/DeepPiCar/models/object_detection/data/model_result/road_signs_quantized_edgetpu.tflite',
-                 label='/home/pi/DeepPiCar/models/object_detection/data/model_result/road_sign_labels.txt',
+                 model='/home/pi/SelfDrivingCar/models/object_detection/data/model_result/road_signs_quantized_edgetpu.tflite',
+                 label='/home/pi/SelfDrivingCar/models/object_detection/data/model_result/road_sign_labels.txt',
                  width=640,
                  height=480):
         # model: This MUST be a tflite model that was specifically compiled for Edge TPU.
@@ -37,7 +37,7 @@ class ObjectsOnRoadProcessor(object):
         self.speed_limit = speed_limit
         # self.speed = 0
         """ Init camera and wheels"""
-        logging.info('Creating a DeepPiCar...')
+        logging.info('Creating a SelfDrivingCar...')
 
         picar.setup()
 
@@ -69,7 +69,7 @@ class ObjectsOnRoadProcessor(object):
         self.video_lane = self.create_video_recorder('../data/tmp/car_video_lane%s.avi' % datestr)
         self.video_objs = self.create_video_recorder('../data/tmp/car_video_objs%s.avi' % datestr)
 
-        logging.info('Created a DeepPiCar')
+        logging.info('Created a SelfDrivingCar')
 
         # initialize TensorFlow models
         with open(label, 'r') as f:
@@ -270,19 +270,19 @@ def test_photo(file):
 def test_stop_sign():
     # this simulates a car at stop sign
     object_processor = ObjectsOnRoadProcessor()
-    frame = cv2.imread('/home/pi/DeepPiCar/driver/data/objects/stop_sign.jpg')
+    frame = cv2.imread('/home/pi/SelfDrivingCar/driver/data/objects/stop_sign.jpg')
     combo_image = object_processor.process_objects_on_road(frame)
     show_image('Stop 1', combo_image)
     time.sleep(1)
-    frame = cv2.imread('/home/pi/DeepPiCar/driver/data/objects/stop_sign.jpg')
+    frame = cv2.imread('/home/pi/SelfDrivingCar/driver/data/objects/stop_sign.jpg')
     combo_image = object_processor.process_objects_on_road(frame)
     show_image('Stop 2', combo_image)
     time.sleep(2)
-    frame = cv2.imread('/home/pi/DeepPiCar/driver/data/objects/stop_sign.jpg')
+    frame = cv2.imread('/home/pi/SelfDrivingCar/driver/data/objects/stop_sign.jpg')
     combo_image = object_processor.process_objects_on_road(frame)
     show_image('Stop 3', combo_image)
     time.sleep(1)
-    frame = cv2.imread('/home/pi/DeepPiCar/driver/data/objects/green_light.jpg')
+    frame = cv2.imread('/home/pi/SelfDrivingCar/driver/data/objects/green_light.jpg')
     combo_image = object_processor.process_objects_on_road(frame)
     show_image('Stop 4', combo_image)
 
@@ -328,12 +328,12 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)-5s:%(asctime)s: %(message)s')
 
     # These processors contains no state
-    #test_photo('/home/pi/DeepPiCar/driver/data/objects/red_light.jpg')
-    #test_photo('/home/pi/DeepPiCar/driver/data/objects/person.jpg')
-    #test_photo('/home/pi/DeepPiCar/driver/data/objects/limit_40.jpg')
-    #test_photo('/home/pi/DeepPiCar/driver/data/objects/limit_25.jpg')
-    #test_photo('/home/pi/DeepPiCar/driver/data/objects/green_light.jpg')
-    #test_photo('/home/pi/DeepPiCar/driver/data/objects/no_obj.jpg')
+    #test_photo('/home/pi/SelfDrivingCar/driver/data/objects/red_light.jpg')
+    #test_photo('/home/pi/SelfDrivingCar/driver/data/objects/person.jpg')
+    #test_photo('/home/pi/SelfDrivingCar/driver/data/objects/limit_40.jpg')
+    #test_photo('/home/pi/SelfDrivingCar/driver/data/objects/limit_25.jpg')
+    #test_photo('/home/pi/SelfDrivingCar/driver/data/objects/green_light.jpg')
+    #test_photo('/home/pi/SelfDrivingCar/driver/data/objects/no_obj.jpg')
     # main()
     roadprocessor = ObjectsOnRoadProcessor()
     roadprocessor.drive(40)

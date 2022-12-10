@@ -1,12 +1,12 @@
-from deep_pi_car import DeepPiCar
+from selfdriving_pi_car import SelfDrivingCar
 import logging
 import sys
 
 def main():
     # print system info
-    logging.info('Starting DeepPiCar, system info: ' + sys.version)
+    logging.info('Starting SelfDrivingCar, system info: ' + sys.version)
     
-    with DeepPiCar() as car:
+    with SelfDrivingCar() as car:
         car.drive(40)
     
 if __name__ == '__main__':
